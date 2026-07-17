@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1F2A44">
+<title>Tempo Ledger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf-autotable.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --navy:#1F2A44;
+    --navy-2:#2A3A5C;
+    --marigold:#F2A541;
+    --vermilion:#D64545;
+    --green:#2F9E5B;
+    --bg:#F1F5F4;
+    --card:#FFFFFF;
+    --border:#DCE3E1;
+    --text:#1F2A44;
+    --muted:#71808A;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;-webkit-tap-highlight-color:transparent;}
+  input:focus,select:focus,button:focus,textarea:focus{outline:2px solid var(--marigold);outline-offset:1px;}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important;}}
+
+  #app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:74px;position:relative;}
+
+  .header{background:var(--navy);color:#F7F8F5;padding:18px 18px 14px;}
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .brand-label{font-family:'Rajdhani',sans-serif;text-transform:uppercase;letter-spacing:2px;font-size:11px;color:var(--marigold);font-weight:600;}
+  .brand-name{font-family:'Rajdhani',sans-serif;text-transform:uppercase;font-weight:700;font-size:23px;margin:2px 0 0;}
+  .header-date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#AFC0D9;text-align:right;}
+  .fringe{height:12px;background-image:linear-gradient(135deg, var(--marigold) 25%, transparent 25.5%),linear-gradient(225deg, var(--marigold) 25%, transparent 25.5%);background-size:18px 18px;background-position:0 0, 9px 0;background-color:var(--navy);}
+
+  .stamp-row{display:flex;justify-content:center;margin:-30px 0 6px;}
+  .stamp{
+    width:112px;height:112px;border-radius:50%;background:var(--card);
+    border:3px dashed var(--vermilion); box-shadow:0 4px 14px rgba(31,42,68,0.18);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transform:rotate(-6deg); text-align:center; padding:6px;
+  }
+  .stamp.clear{border-color:var(--green);}
+  .stamp-label{font-family:'Rajdhani',sans-serif;text-transform:uppercase;font-size:10px;letter-spacing:1px;color:var(--muted);font-weight:600;}
+  .stamp-amount{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:var(--vermilion);margin-top:2px;}
+  .stamp.clear .stamp-amount{color:var(--green);}
+
+  .content{padding:14px 16px 4px;}
+
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;}
+  .stat-label{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);}
+  .stat-value{font-family:'Rajdhani',sans-serif;font-size:21px;font-weight:700;margin-top:4px;}
+
+  h2.section-title{font-family:'Rajdhani',sans-serif;text-transform:uppercase;font-size:16px;letter-spacing:0.5px;margin:18px 0 10px;font-weight:700;}
+  .section-row{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px;}
+  .section-row h2.section-title{margin:0;}
+
+  .btn{border:none;border-radius:7px;font-family:'Rajdhani',sans-serif;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;font-size:13px;cursor:pointer;padding:10px 14px;}
+  .btn-primary{background:var(--navy);color:#fff;}
+  .btn-accent{background:var(--marigold);color:var(--navy);}
+  .btn-outline{background:#fff;border:1.5px solid var(--border);color:var(--text);}
+  .btn-full{width:100%;}
+  .btn-sm{padding:6px 10px;font-size:11px;border-radius:6px;}
+  .btn-danger-ghost{background:transparent;border:none;color:var(--muted);cursor:pointer;padding:4px;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 14px;margin-bottom:10px;}
+  .empty{text-align:center;padding:26px 14px;color:var(--muted);font-size:13px;background:#fff;border:1px dashed var(--border);border-radius:10px;margin-bottom:12px;}
+
+  .form-box{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .field-label{font-size:11px;color:var(--muted);font-weight:600;margin:0 0 4px;display:block;}
+  .field{width:100%;padding:9px 10px;border-radius:7px;border:1px solid var(--border);font-size:14px;margin-bottom:10px;font-family:'Inter',sans-serif;background:#fff;}
+  .field-row{display:flex;gap:8px;}
+  .field-row .field{flex:1;}
+
+  .trip-row{display:flex;justify-content:space-between;align-items:flex-start;}
+  .trip-route{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:15px;}
+  .trip-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:3px;}
+  .trip-amount{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:14px;color:var(--navy);white-space:nowrap;}
+
+  .cust-row{display:flex;justify-content:space-between;align-items:center;}
+  .cust-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;}
+  .cust-phone{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);}
+  .balance-pill{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;padding:4px 9px;border-radius:14px;}
+  .balance-due{background:#D6454518;color:var(--vermilion);}
+  .balance-clear{background:#2F9E5B18;color:var(--green);}
+  .cust-actions{display:flex;gap:6px;margin-top:10px;}
+
+  .period-tabs{display:flex;gap:6px;margin-bottom:14px;}
+  .period-btn{flex:1;padding:9px 4px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;text-transform:uppercase;font-size:12px;cursor:pointer;}
+  .period-btn.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+  .range-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:14px;text-align:center;}
+
+  table.mini{width:100%;border-collapse:collapse;font-size:12px;}
+  table.mini th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;color:var(--muted);padding:6px 4px;border-bottom:1px solid var(--border);}
+  table.mini td{padding:7px 4px;border-bottom:1px solid #EEF1F0;}
+
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;max-width:480px;margin:0 auto;}
+  .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 0 8px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:0.3px;}
+  .nav-btn.active{color:var(--navy);}
+  .nav-dot{width:20px;height:20px;}
+
+  .save-indicator{font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#8FA2C4;margin-top:3px;}
+
+  select.field{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2371808A'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+
+  .color-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #EEF1F0;font-size:13px;}
+  .color-row:last-of-type{border-bottom:none;}
+  .color-row input[type="color"]{width:40px;height:32px;border:1px solid var(--border);border-radius:6px;padding:2px;background:#fff;cursor:pointer;}
+
+  .lock-screen{min-height:100vh;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;color:#fff;}
+  .lock-title{font-family:'Rajdhani',sans-serif;text-transform:uppercase;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:1px;}
+  .pin-dots{display:flex;gap:12px;margin:22px 0 6px;}
+  .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--marigold);background:transparent;}
+  .pin-dot.filled{background:var(--marigold);}
+  .lock-error{color:#FF8A8A;font-size:12px;font-family:'IBM Plex Mono',monospace;margin-bottom:10px;}
+  .keypad{display:grid;grid-template-columns:repeat(3,64px);gap:14px;margin-top:18px;}
+  .key-btn{width:64px;height:64px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.06);color:#fff;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:600;cursor:pointer;}
+  .key-btn:active{background:rgba(255,255,255,0.16);}
+  .forgot-btn{margin-top:28px;background:none;border:none;color:#AFC0D9;font-size:11px;text-decoration:underline;font-family:'Inter',sans-serif;cursor:pointer;}
+  .shake{animation:shakeAnim 0.4s;}
+  @keyframes shakeAnim{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+
+  .cal-icon-btn{flex:0 0 48px;display:flex;align-items:center;justify-content:center;padding:0;}
+  .cal-header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .cal-nav-btn{background:#fff;border:1px solid var(--border);border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;color:var(--navy);}
+  .cal-month-label{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.5px;}
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:4px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:18px;}
+  .cal-cell{aspect-ratio:1;background:#fff;border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;color:var(--text);padding:0;}
+  .cal-cell.empty{border:none;background:transparent;cursor:default;}
+  .cal-cell.today{border-color:var(--navy);border-width:2px;font-weight:700;}
+  .cal-cell.selected{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .cal-cell.has-data:not(.selected){background:#F2A54118;}
+  .cal-dot{width:5px;height:5px;border-radius:50%;background:var(--marigold);margin-top:2px;}
+  .cal-cell.selected .cal-dot{background:#fff;}
+</style>
+</head>
+<body>
+<div id="app">Loading ledger…</div>
+
+<script>
+(function(){
+  "use strict";
+  const STORAGE_KEY = "tempo-ledger-v1";
+  const uid = () => Math.random().toString(36).slice(2,10);
+  const todayISO = () => new Date().toISOString().slice(0,10);
+
+  let state = {
+    business: { name: "My Tempo Service", phone: "" },
+    customers: [],
+    trips: [],
+    payments: [],
+    settings: { pin: null, theme: { navy: "#1F2A44", marigold: "#F2A541", vermilion: "#D64545", green: "#2F9E5B" } },
+    tab: "home",
+    period: "daily",
+    saveState: "synced",
+    calendarYear: new Date().getFullYear(),
+    calendarMonth: new Date().getMonth(),
+    selectedDate: todayISO()
+  };
+  let ready = false;
+  let saveTimer = null;
+  let unlocked = false;
+  let pinEntry = "";
+  let pinError = false;
+
+  function seed(){
+    const c1 = { id: uid(), name: "Anil General Store", phone: "98765 11111" };
+    const c2 = { id: uid(), name: "Priya Kirana", phone: "98765 22222" };
+    state.business = { name: "My Tempo Service", phone: "98765 00000" };
+    state.customers = [c1, c2];
+    state.trips = [
+      { id: uid(), customerId: c1.id, date: todayISO(), pickup: "Wholesale Market", drop: "MG Road Shop", distance: 8, amount: 300, note: "" },
+      { id: uid(), customerId: c2.id, date: todayISO(), pickup: "Warehouse", drop: "Sector 12", distance: 5, amount: 200, note: "" }
+    ];
+    state.payments = [
+      { id: uid(), customerId: c1.id, date: todayISO(), amount: 300, note: "Cash" }
+    ];
+  }
+
+  async function loadData(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      if(res && res.value){
+        const d = JSON.parse(res.value);
+        state.business = d.business || state.business;
+        state.customers = d.customers || [];
+        state.trips = d.trips || [];
+        state.payments = d.payments || [];
+        if(d.settings){
+          state.settings = {
+            pin: d.settings.pin || null,
+            theme: { ...state.settings.theme, ...(d.settings.theme || {}) }
+          };
+        }
+      } else {
+        seed();
+      }
+    } catch(e){
+      seed();
+    }
+    ready = true;
+    applyTheme();
+    if(state.settings.pin){
+      unlocked = false;
+      renderLock();
+    } else {
+      unlocked = true;
+      render();
+    }
+  }
+
+  function applyTheme(){
+    const t = state.settings.theme;
+    const root = document.documentElement.style;
+    root.setProperty("--navy", t.navy);
+    root.setProperty("--marigold", t.marigold);
+    root.setProperty("--vermilion", t.vermilion);
+    root.setProperty("--green", t.green);
+  }
+
+  function scheduleSave(){
+    if(!ready) return;
+    state.saveState = "saving";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      try{
+        await window.storage.set(STORAGE_KEY, JSON.stringify({
+          business: state.business, customers: state.customers, trips: state.trips, payments: state.payments, settings: state.settings
+        }), false);
+        state.saveState = "synced";
+      } catch(e){
+        state.saveState = "error";
+        console.error("save failed", e);
+      }
+      renderSaveIndicatorOnly();
+    }, 400);
+  }
+
+  function renderSaveIndicatorOnly(){
+    const el = document.getElementById("saveIndicator");
+    if(el) el.textContent = state.saveState === "saving" ? "● saving" : state.saveState === "error" ? "● save failed" : "● synced";
+  }
+
+  // ---------- helpers ----------
+  function formatINR(num){
+    num = Math.round(num || 0);
+    const neg = num < 0;
+    num = Math.abs(num);
+    let str = String(num);
+    let last3 = str.substring(str.length - 3);
+    let other = str.substring(0, str.length - 3);
+    if(other !== "") last3 = "," + last3;
+    let formatted = other.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + last3;
+    return (neg ? "-" : "") + "₹" + formatted;
+  }
+  function formatDateShort(iso){
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  }
+  function formatDateLong(iso){
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  }
+  function customerName(id){
+    const c = state.customers.find(c => c.id === id);
+    return c ? c.name : "Unknown";
+  }
+  function customerTotals(id){
+    const totalBilled = state.trips.filter(t => t.customerId === id).reduce((s,t) => s + t.amount, 0);
+    const totalPaid = state.payments.filter(p => p.customerId === id).reduce((s,p) => s + p.amount, 0);
+    return { totalBilled, totalPaid, balance: totalBilled - totalPaid };
+  }
+  function totalOutstanding(){
+    return state.customers.reduce((s,c) => s + customerTotals(c.id).balance, 0);
+  }
+  function startOfWeek(d){ d = new Date(d); const day = d.getDay(); const diff = (day === 0 ? -6 : 1 - day); d.setDate(d.getDate() + diff); d.setHours(0,0,0,0); return d; }
+  function endOfWeek(d){ const s = startOfWeek(d); const e = new Date(s); e.setDate(s.getDate() + 6); e.setHours(23,59,59,999); return e; }
+  function startOfMonth(d){ const e = new Date(d.getFullYear(), d.getMonth(), 1); return e; }
+  function endOfMonth(d){ const e = new Date(d.getFullYear(), d.getMonth() + 1, 0); e.setHours(23,59,59,999); return e; }
+
+  function periodRange(period){
+    const now = new Date();
+    if(period === "daily"){
+      const s = new Date(now); s.setHours(0,0,0,0);
+      const e = new Date(now); e.setHours(23,59,59,999);
+      return [s, e];
+    }
+    if(period === "weekly") return [startOfWeek(now), endOfWeek(now)];
+    return [startOfMonth(now), endOfMonth(now)];
+  }
+  function tripsInRange(start, end){
+    return state.trips.filter(t => {
+      const d = new Date(t.date + "T12:00:00");
+      return d >= start && d <= end;
+    });
+  }
+  function paymentsInRange(start, end){
+    return state.payments.filter(p => {
+      const d = new Date(p.date + "T12:00:00");
+      return d >= start && d <= end;
+    });
+  }
+
+  // ---------- render root ----------
+  function render(){
+    const app = document.getElementById("app");
+    app.innerHTML = header() + '<div class="content">' + tabContent() + '</div>' + bottomNav();
+  }
+
+  function header(){
+    const outstanding = totalOutstanding();
+    return `
+      <div class="header">
+        <div class="header-top">
+          <div>
+            <div class="brand-label">Daily Ledger</div>
+            <div class="brand-name">${escapeHtml(state.business.name)}</div>
+          </div>
+          <div class="header-date">
+            ${new Date().toLocaleDateString("en-IN",{weekday:"short",day:"2-digit",month:"short"})}
+            <div class="save-indicator" id="saveIndicator">● synced</div>
+          </div>
+        </div>
+      </div>
+      <div class="fringe"></div>
+      <div class="stamp-row">
+        <div class="stamp ${outstanding <= 0 ? "clear" : ""}">
+          <div class="stamp-label">${outstanding <= 0 ? "All Clear" : "Total Due"}</div>
+          <div class="stamp-amount">${formatINR(Math.abs(outstanding))}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function bottomNav(){
+    const tabs = [
+      { key: "home", label: "Home", d: "M3 11l9-8 9 8M5 10v10h14V10" },
+      { key: "trips", label: "Trips", d: "M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z" },
+      { key: "customers", label: "Customers", d: "M12 12a4 4 0 100-8 4 4 0 000 8zM4 20c0-4 4-6 8-6s8 2 8 6" },
+      { key: "reports", label: "Reports", d: "M4 19V5M9 19v-8M14 19V9M19 19V3" },
+      { key: "settings", label: "Settings", d: "M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.6 1z" }
+    ];
+    return '<div class="bottom-nav">' + tabs.map(t => `
+      <button class="nav-btn ${state.tab === t.key ? "active" : ""}" onclick="app.setTab('${t.key}')">
+        <svg class="nav-dot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${t.d}"/></svg>
+        ${t.label}
+      </button>
+    `).join("") + '</div>';
+  }
+
+  function tabContent(){
+    if(state.tab === "home") return homeTab();
+    if(state.tab === "trips") return tripsTab();
+    if(state.tab === "customers") return customersTab();
+    if(state.tab === "reports") return reportsTab();
+    if(state.tab === "calendar") return calendarTab();
+    return settingsTab();
+  }
+
+  // ---------- HOME ----------
+  function homeTab(){
+    const [s,e] = periodRange("daily");
+    const todays = tripsInRange(s,e);
+    const revenueToday = todays.reduce((sum,t) => sum + t.amount, 0);
+    const recent = [...state.trips].sort((a,b) => b.date.localeCompare(a.date)).slice(0,5);
+
+    return `
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Trips Today</div><div class="stat-value">${todays.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Revenue Today</div><div class="stat-value">${formatINR(revenueToday)}</div></div>
+        <div class="stat-card"><div class="stat-label">Customers</div><div class="stat-value">${state.customers.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Trips Total</div><div class="stat-value">${state.trips.length}</div></div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-accent" style="flex:1;" onclick="app.setTab('trips')">+ Add Today's Trip</button>
+        <button class="btn btn-outline cal-icon-btn" onclick="app.setTab('calendar')" aria-label="View calendar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </button>
+      </div>
+
+      <h2 class="section-title">Recent Trips</h2>
+      ${recent.length === 0 ? emptyState("No trips logged yet.") : recent.map(tripCard).join("")}
+    `;
+  }
+
+  function tripCard(t){
+    return `
+      <div class="card">
+        <div class="trip-row">
+          <div>
+            <div class="trip-route">${escapeHtml(t.pickup)} → ${escapeHtml(t.drop)}</div>
+            <div class="trip-meta">${formatDateShort(t.date)} · ${escapeHtml(customerName(t.customerId))} · ${t.distance} km</div>
+          </div>
+          <div class="trip-amount">${formatINR(t.amount)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- TRIPS ----------
+  function tripsTab(){
+    const custOptions = state.customers.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+    const sorted = [...state.trips].sort((a,b) => b.date.localeCompare(a.date));
+    return `
+      <div class="section-row"><h2 class="section-title">Add Trip</h2></div>
+      <div class="form-box">
+        <label class="field-label">Customer</label>
+        <select class="field" id="tripCustomer" onchange="app.toggleNewCustomer(this.value)">
+          ${custOptions}
+          <option value="__new__">+ New customer</option>
+        </select>
+        <div id="newCustomerWrap" style="display:none;">
+          <label class="field-label">New customer name</label>
+          <input class="field" id="newCustomerName" placeholder="Customer / shop name">
+          <label class="field-label">Phone (optional)</label>
+          <input class="field" id="newCustomerPhone" placeholder="10-digit number">
+        </div>
+        <label class="field-label">Date</label>
+        <input class="field" id="tripDate" type="date" value="${todayISO()}">
+        <div class="field-row">
+          <div><label class="field-label">Pickup</label><input class="field" id="tripPickup" placeholder="From"></div>
+          <div><label class="field-label">Drop</label><input class="field" id="tripDrop" placeholder="To"></div>
+        </div>
+        <div class="field-row">
+          <div><label class="field-label">Distance (km)</label><input class="field" id="tripDistance" type="number" placeholder="0"></div>
+          <div><label class="field-label">Amount (₹)</label><input class="field" id="tripAmount" type="number" placeholder="0"></div>
+        </div>
+        <label class="field-label">Note (optional)</label>
+        <input class="field" id="tripNote" placeholder="Goods carried, etc.">
+        <button class="btn btn-primary btn-full" onclick="app.addTrip()">Save Trip</button>
+      </div>
+
+      <h2 class="section-title">All Trips</h2>
+      ${sorted.length === 0 ? emptyState("No trips yet.") : sorted.map(t => `
+        <div class="card">
+          <div class="trip-row">
+            <div>
+              <div class="trip-route">${escapeHtml(t.pickup)} → ${escapeHtml(t.drop)}</div>
+              <div class="trip-meta">${formatDateShort(t.date)} · ${escapeHtml(customerName(t.customerId))} · ${t.distance} km${t.note ? " · " + escapeHtml(t.note) : ""}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="trip-amount">${formatINR(t.amount)}</div>
+              <button class="btn-danger-ghost" onclick="app.deleteTrip('${t.id}')">✕</button>
+            </div>
+          </div>
+        </div>
+      `).join("")}
+    `;
+  }
+
+  // ---------- CUSTOMERS ----------
+  function customersTab(){
+    return `
+      <div class="section-row"><h2 class="section-title">Add Customer</h2></div>
+      <div class="form-box">
+        <label class="field-label">Name</label>
+        <input class="field" id="custName" placeholder="Customer / shop name">
+        <label class="field-label">Phone (optional)</label>
+        <input class="field" id="custPhone" placeholder="10-digit number">
+        <button class="btn btn-primary btn-full" onclick="app.addCustomer()">Save Customer</button>
+      </div>
+
+      <h2 class="section-title">Customers</h2>
+      ${state.customers.length === 0 ? emptyState("No customers yet.") : state.customers.map(customerCard).join("")}
+    `;
+  }
+
+  function customerCard(c){
+    const { totalBilled, totalPaid, balance } = customerTotals(c.id);
+    return `
+      <div class="card">
+        <div class="cust-row">
+          <div>
+            <div class="cust-name">${escapeHtml(c.name)}</div>
+            ${c.phone ? `<div class="cust-phone">${escapeHtml(c.phone)}</div>` : ""}
+          </div>
+          <div class="balance-pill ${balance > 0 ? "balance-due" : "balance-clear"}">
+            ${balance > 0 ? formatINR(balance) + " due" : "Clear"}
+          </div>
+        </div>
+        <div class="trip-meta" style="margin-top:8px;">Billed ${formatINR(totalBilled)} · Paid ${formatINR(totalPaid)}</div>
+        <div class="cust-actions">
+          <button class="btn btn-outline btn-sm" onclick="app.togglePaymentForm('${c.id}')">+ Payment</button>
+          <button class="btn btn-accent btn-sm" onclick="app.generateInvoice('${c.id}')">Invoice PDF</button>
+          <button class="btn-danger-ghost" onclick="app.deleteCustomer('${c.id}')">✕</button>
+        </div>
+        <div id="payForm-${c.id}" style="display:none;margin-top:10px;">
+          <div class="field-row">
+            <div><label class="field-label">Amount (₹)</label><input class="field" id="payAmount-${c.id}" type="number" placeholder="0"></div>
+            <div><label class="field-label">Date</label><input class="field" id="payDate-${c.id}" type="date" value="${todayISO()}"></div>
+          </div>
+          <label class="field-label">Note (optional)</label>
+          <input class="field" id="payNote-${c.id}" placeholder="Cash / UPI / etc.">
+          <button class="btn btn-primary btn-full" onclick="app.addPayment('${c.id}')">Record Payment</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- REPORTS ----------
+  function reportsTab(){
+    const [s,e] = periodRange(state.period);
+    const trips = tripsInRange(s,e).sort((a,b) => a.date.localeCompare(b.date));
+    const payments = paymentsInRange(s,e);
+    const revenue = trips.reduce((sum,t) => sum + t.amount, 0);
+    const collected = payments.reduce((sum,p) => sum + p.amount, 0);
+
+    const byCustomer = {};
+    trips.forEach(t => {
+      if(!byCustomer[t.customerId]) byCustomer[t.customerId] = { count: 0, amount: 0 };
+      byCustomer[t.customerId].count++;
+      byCustomer[t.customerId].amount += t.amount;
+    });
+    const rows = Object.entries(byCustomer).map(([id,v]) => ({ name: customerName(id), ...v }));
+
+    const rangeLabel = state.period === "daily"
+      ? formatDateLong(todayISO())
+      : `${formatDateShort(s.toISOString().slice(0,10))} – ${formatDateShort(e.toISOString().slice(0,10))}`;
+
+    return `
+      <h2 class="section-title">Reports</h2>
+      <div class="period-tabs">
+        <button class="period-btn ${state.period === "daily" ? "active" : ""}" onclick="app.setPeriod('daily')">Daily</button>
+        <button class="period-btn ${state.period === "weekly" ? "active" : ""}" onclick="app.setPeriod('weekly')">Weekly</button>
+        <button class="period-btn ${state.period === "monthly" ? "active" : ""}" onclick="app.setPeriod('monthly')">Monthly</button>
+      </div>
+      <div class="range-label">${rangeLabel}</div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Trips</div><div class="stat-value">${trips.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">${formatINR(revenue)}</div></div>
+        <div class="stat-card"><div class="stat-label">Collected</div><div class="stat-value">${formatINR(collected)}</div></div>
+        <div class="stat-card"><div class="stat-label">Customers Served</div><div class="stat-value">${rows.length}</div></div>
+      </div>
+
+      <button class="btn btn-accent btn-full" onclick="app.downloadReportPdf()">Download PDF Report</button>
+
+      <h2 class="section-title">By Customer</h2>
+      ${rows.length === 0 ? emptyState("No trips in this period.") : `
+        <table class="mini">
+          <thead><tr><th>Customer</th><th>Trips</th><th>Amount</th></tr></thead>
+          <tbody>
+            ${rows.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${r.count}</td><td>${formatINR(r.amount)}</td></tr>`).join("")}
+          </tbody>
+        </table>
+      `}
+    `;
+  }
+
+  // ---------- CALENDAR ----------
+  function calendarTab(){
+    const year = state.calendarYear, month = state.calendarMonth;
+    const first = new Date(year, month, 1);
+    const startWeekday = first.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthName = first.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+
+    const dayData = {};
+    state.trips.forEach(t => {
+      const d = new Date(t.date + "T00:00:00");
+      if(d.getFullYear() === year && d.getMonth() === month){
+        if(!dayData[t.date]) dayData[t.date] = { trips: [], payments: [] };
+        dayData[t.date].trips.push(t);
+      }
+    });
+    state.payments.forEach(p => {
+      const d = new Date(p.date + "T00:00:00");
+      if(d.getFullYear() === year && d.getMonth() === month){
+        if(!dayData[p.date]) dayData[p.date] = { trips: [], payments: [] };
+        dayData[p.date].payments.push(p);
+      }
+    });
+
+    let cells = "";
+    for(let i = 0; i < startWeekday; i++) cells += `<div class="cal-cell empty"></div>`;
+    for(let day = 1; day <= daysInMonth; day++){
+      const dISO = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+      const hasData = !!dayData[dISO];
+      const isSelected = dISO === state.selectedDate;
+      const isToday = dISO === todayISO();
+      cells += `
+        <button class="cal-cell ${hasData ? "has-data" : ""} ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}" onclick="app.selectCalendarDate('${dISO}')">
+          <span class="cal-day-num">${day}</span>
+          ${hasData ? `<span class="cal-dot"></span>` : ""}
+        </button>
+      `;
+    }
+
+    const weekdayLabels = ["S","M","T","W","T","F","S"];
+    const selInfo = dayData[state.selectedDate] || { trips: [], payments: [] };
+    const selTripsTotal = selInfo.trips.reduce((s,t) => s + t.amount, 0);
+
+    return `
+      <h2 class="section-title">Calendar</h2>
+      <div class="cal-header-row">
+        <button class="cal-nav-btn" onclick="app.calendarPrevMonth()">‹</button>
+        <div class="cal-month-label">${monthName}</div>
+        <button class="cal-nav-btn" onclick="app.calendarNextMonth()">›</button>
+      </div>
+      <div class="cal-weekdays">${weekdayLabels.map(w => `<div>${w}</div>`).join("")}</div>
+      <div class="cal-grid">${cells}</div>
+
+      <h2 class="section-title">${formatDateLong(state.selectedDate)}</h2>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Trips</div><div class="stat-value">${selInfo.trips.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Billed</div><div class="stat-value">${formatINR(selTripsTotal)}</div></div>
+      </div>
+      ${selInfo.trips.length === 0 && selInfo.payments.length === 0 ? emptyState("No activity on this date.") : ""}
+      ${selInfo.trips.map(tripCard).join("")}
+      ${selInfo.payments.map(p => `
+        <div class="card">
+          <div class="trip-row">
+            <div>
+              <div class="trip-route">Payment received</div>
+              <div class="trip-meta">${escapeHtml(customerName(p.customerId))}${p.note ? " · " + escapeHtml(p.note) : ""}</div>
+            </div>
+            <div class="trip-amount" style="color:var(--green);">+${formatINR(p.amount)}</div>
+          </div>
+        </div>
+      `).join("")}
+    `;
+  }
+
+  // ---------- SETTINGS ----------
+  function settingsTab(){
+    const t = state.settings.theme;
+    const hasPin = !!state.settings.pin;
+    return `
+      <h2 class="section-title">Business Info</h2>
+      <div class="form-box">
+        <label class="field-label">Company Name</label>
+        <input class="field" id="setBizName" value="${escapeHtml(state.business.name)}" placeholder="Company name">
+        <label class="field-label">Phone</label>
+        <input class="field" id="setBizPhone" value="${escapeHtml(state.business.phone || "")}" placeholder="Phone number">
+        <button class="btn btn-primary btn-full" onclick="app.saveBusinessInfo()">Save</button>
+      </div>
+
+      <h2 class="section-title">Template Colours</h2>
+      <div class="form-box">
+        <div class="color-row"><span>Primary (header, buttons)</span><input type="color" id="themeNavy" value="${t.navy}"></div>
+        <div class="color-row"><span>Accent (highlights)</span><input type="color" id="themeMarigold" value="${t.marigold}"></div>
+        <div class="color-row"><span>Due / alert</span><input type="color" id="themeVermilion" value="${t.vermilion}"></div>
+        <div class="color-row"><span>Paid / positive</span><input type="color" id="themeGreen" value="${t.green}"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn btn-primary" style="flex:1;" onclick="app.saveTheme()">Apply Colours</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="app.resetTheme()">Reset Default</button>
+        </div>
+      </div>
+
+      <h2 class="section-title">App Lock (PIN)</h2>
+      <div class="form-box">
+        <div class="trip-meta" style="margin-bottom:10px;">${hasPin ? "PIN lock is ON — the app will ask for it next time it's opened." : "No PIN set — anyone opening this page can see your data."}</div>
+        <label class="field-label">${hasPin ? "New PIN" : "Set a PIN"} (4–6 digits)</label>
+        <input class="field" id="newPin" type="tel" inputmode="numeric" maxlength="6" placeholder="e.g. 1234">
+        <label class="field-label">Confirm PIN</label>
+        <input class="field" id="confirmPin" type="tel" inputmode="numeric" maxlength="6" placeholder="Re-enter PIN">
+        <button class="btn btn-primary btn-full" onclick="app.setPin()">${hasPin ? "Change PIN" : "Set PIN"}</button>
+        ${hasPin ? `<button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="app.removePin()">Remove PIN</button>` : ""}
+      </div>
+
+      <h2 class="section-title">Backup &amp; Google Drive</h2>
+      <div class="form-box">
+        <div class="trip-meta" style="margin-bottom:10px;">Your data already saves on this device automatically. For a Google Drive copy: download the backup file below, then save/upload it to Drive from your phone's share menu. To bring your data back — here or on a new phone — use Restore and pick that file.</div>
+        <button class="btn btn-accent btn-full" onclick="app.exportBackup()">Download Backup (.json)</button>
+        <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="app.triggerImport()">Restore from Backup</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none;" onchange="app.handleImportFile(this)">
+      </div>
+    `;
+  }
+
+  function renderLock(){
+    const len = (state.settings.pin || "").length || 4;
+    const dots = Array.from({length: len}, (_,i) => `<div class="pin-dot ${i < pinEntry.length ? "filled" : ""}"></div>`).join("");
+    document.getElementById("app").innerHTML = `
+      <div class="lock-screen ${pinError ? "shake" : ""}">
+        <div class="brand-label" style="color:var(--marigold);">${escapeHtml(state.business.name)}</div>
+        <div class="lock-title">Enter PIN</div>
+        <div class="pin-dots">${dots}</div>
+        ${pinError ? `<div class="lock-error">Incorrect PIN</div>` : ""}
+        <div class="keypad">
+          ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="key-btn" onclick="app.pressDigit('${n}')">${n}</button>`).join("")}
+          <div></div>
+          <button class="key-btn" onclick="app.pressDigit('0')">0</button>
+          <button class="key-btn" onclick="app.pressBackspace()">⌫</button>
+        </div>
+        <button class="forgot-btn" onclick="app.forgotPinReset()">Forgot PIN? Reset app data</button>
+      </div>
+    `;
+  }
+
+  function emptyState(text){ return `<div class="empty">${text}</div>`; }
+  function escapeHtml(str){
+    return String(str || "").replace(/[&<>"']/g, m => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[m]));
+  }
+
+  // ---------- actions ----------
+  const app = {
+    setTab(tab){ state.tab = tab; render(); },
+    setPeriod(period){ state.period = period; render(); },
+
+    toggleNewCustomer(val){
+      document.getElementById("newCustomerWrap").style.display = val === "__new__" ? "block" : "none";
+    },
+
+    addTrip(){
+      const custSelect = document.getElementById("tripCustomer");
+      let customerId = custSelect.value;
+      if(customerId === "__new__"){
+        const name = document.getElementById("newCustomerName").value.trim();
+        if(!name){ alert("Enter a name for the new customer."); return; }
+        const phone = document.getElementById("newCustomerPhone").value.trim();
+        const c = { id: uid(), name, phone };
+        state.customers.push(c);
+        customerId = c.id;
+      }
+      if(!customerId){ alert("Select or add a customer."); return; }
+      const pickup = document.getElementById("tripPickup").value.trim();
+      const drop = document.getElementById("tripDrop").value.trim();
+      const distance = Number(document.getElementById("tripDistance").value) || 0;
+      const amount = Number(document.getElementById("tripAmount").value) || 0;
+      const date = document.getElementById("tripDate").value || todayISO();
+      const note = document.getElementById("tripNote").value.trim();
+      if(!pickup || !drop){ alert("Enter pickup and drop location."); return; }
+      state.trips.push({ id: uid(), customerId, date, pickup, drop, distance, amount, note });
+      scheduleSave();
+      render();
+    },
+
+    deleteTrip(id){
+      state.trips = state.trips.filter(t => t.id !== id);
+      scheduleSave();
+      render();
+    },
+
+    addCustomer(){
+      const name = document.getElementById("custName").value.trim();
+      if(!name){ alert("Enter a customer name."); return; }
+      const phone = document.getElementById("custPhone").value.trim();
+      state.customers.push({ id: uid(), name, phone });
+      scheduleSave();
+      render();
+    },
+
+    deleteCustomer(id){
+      if(!confirm("Remove this customer? Their trips and payments stay on record but will show as Unknown.")) return;
+      state.customers = state.customers.filter(c => c.id !== id);
+      scheduleSave();
+      render();
+    },
+
+    togglePaymentForm(id){
+      const el = document.getElementById("payForm-" + id);
+      el.style.display = el.style.display === "none" ? "block" : "none";
+    },
+
+    addPayment(customerId){
+      const amount = Number(document.getElementById("payAmount-" + customerId).value) || 0;
+      if(amount <= 0){ alert("Enter a valid amount."); return; }
+      const date = document.getElementById("payDate-" + customerId).value || todayISO();
+      const note = document.getElementById("payNote-" + customerId).value.trim();
+      state.payments.push({ id: uid(), customerId, date, amount, note });
+      scheduleSave();
+      render();
+    },
+
+    generateInvoice(customerId){
+      const cust = state.customers.find(c => c.id === customerId);
+      if(!cust) return;
+      const trips = state.trips.filter(t => t.customerId === customerId).sort((a,b) => a.date.localeCompare(b.date));
+      const payments = state.payments.filter(p => p.customerId === customerId).sort((a,b) => a.date.localeCompare(b.date));
+      const totalBilled = trips.reduce((s,t) => s + t.amount, 0);
+      const totalPaid = payments.reduce((s,p) => s + p.amount, 0);
+      const balance = totalBilled - totalPaid;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFont("helvetica", "bold"); doc.setFontSize(17);
+      doc.setTextColor(31,42,68);
+      doc.text(state.business.name || "Delivery Service", 14, 18);
+      doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(80,80,80);
+      if(state.business.phone) doc.text("Ph: " + state.business.phone, 14, 24);
+
+      doc.setFontSize(13); doc.setFont("helvetica", "bold"); doc.setTextColor(31,42,68);
+      doc.text("INVOICE / STATEMENT", 14, 36);
+      doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(0,0,0);
+      doc.text("Customer: " + cust.name, 14, 44);
+      if(cust.phone) doc.text("Phone: " + cust.phone, 14, 50);
+      doc.text("Date: " + formatDateLong(todayISO()), 150, 18);
+
+      doc.autoTable({
+        startY: 56,
+        head: [["Date", "Pickup", "Drop", "Km", "Amount"]],
+        body: trips.map(t => [formatDateShort(t.date), t.pickup, t.drop, String(t.distance), formatINR(t.amount)]),
+        theme: "grid",
+        headStyles: { fillColor: [31,42,68] },
+        styles: { fontSize: 9 }
+      });
+
+      let y = doc.lastAutoTable.finalY + 10;
+      doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(0,0,0);
+      doc.text("Total Billed: " + formatINR(totalBilled), 14, y); y += 6;
+      doc.text("Total Paid: " + formatINR(totalPaid), 14, y); y += 8;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+      if(balance > 0) doc.setTextColor(214,69,69); else doc.setTextColor(47,158,91);
+      doc.text("Balance Due: " + formatINR(balance), 14, y);
+      doc.setTextColor(0,0,0);
+
+      if(payments.length){
+        y += 12;
+        doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+        doc.text("Payment History", 14, y);
+        doc.autoTable({
+          startY: y + 4,
+          head: [["Date", "Amount", "Note"]],
+          body: payments.map(p => [formatDateShort(p.date), formatINR(p.amount), p.note || ""]),
+          theme: "grid",
+          headStyles: { fillColor: [47,158,91] },
+          styles: { fontSize: 9 }
+        });
+      }
+
+      doc.save("Invoice-" + cust.name.replace(/\s+/g, "_") + ".pdf");
+    },
+
+    downloadReportPdf(){
+      const [s,e] = periodRange(state.period);
+      const trips = tripsInRange(s,e).sort((a,b) => a.date.localeCompare(b.date));
+      const payments = paymentsInRange(s,e);
+      const revenue = trips.reduce((sum,t) => sum + t.amount, 0);
+      const collected = payments.reduce((sum,p) => sum + p.amount, 0);
+
+      const byCustomer = {};
+      trips.forEach(t => {
+        if(!byCustomer[t.customerId]) byCustomer[t.customerId] = { count: 0, amount: 0 };
+        byCustomer[t.customerId].count++;
+        byCustomer[t.customerId].amount += t.amount;
+      });
+      const rows = Object.entries(byCustomer).map(([id,v]) => [customerName(id), String(v.count), formatINR(v.amount)]);
+
+      const label = state.period.charAt(0).toUpperCase() + state.period.slice(1);
+      const rangeLabel = state.period === "daily"
+        ? formatDateLong(todayISO())
+        : formatDateShort(s.toISOString().slice(0,10)) + " to " + formatDateShort(e.toISOString().slice(0,10));
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(31,42,68);
+      doc.text(state.business.name || "Delivery Service", 14, 18);
+      doc.setFontSize(13); doc.setFont("helvetica", "bold");
+      doc.text(label + " Trip Report", 14, 32);
+      doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(80,80,80);
+      doc.text(rangeLabel, 14, 39);
+
+      doc.setTextColor(0,0,0);
+      doc.text("Total Trips: " + trips.length, 14, 48);
+      doc.text("Revenue: " + formatINR(revenue), 14, 54);
+      doc.text("Collected: " + formatINR(collected), 14, 60);
+
+      doc.autoTable({
+        startY: 68,
+        head: [["Date", "Customer", "Route", "Km", "Amount"]],
+        body: trips.map(t => [formatDateShort(t.date), customerName(t.customerId), t.pickup + " -> " + t.drop, String(t.distance), formatINR(t.amount)]),
+        theme: "grid",
+        headStyles: { fillColor: [31,42,68] },
+        styles: { fontSize: 8 }
+      });
+
+      let y = doc.lastAutoTable.finalY + 10;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+      doc.text("By Customer", 14, y);
+      doc.autoTable({
+        startY: y + 4,
+        head: [["Customer", "Trips", "Amount"]],
+        body: rows,
+        theme: "grid",
+        headStyles: { fillColor: [242,165,65], textColor: [31,42,68] },
+        styles: { fontSize: 9 }
+      });
+
+      doc.save(label + "-Report-" + todayISO() + ".pdf");
+    },
+
+    saveBusinessInfo(){
+      const name = document.getElementById("setBizName").value.trim();
+      const phone = document.getElementById("setBizPhone").value.trim();
+      if(!name){ alert("Company name can't be empty."); return; }
+      state.business = { name, phone };
+      scheduleSave();
+      render();
+    },
+
+    saveTheme(){
+      state.settings.theme = {
+        navy: document.getElementById("themeNavy").value,
+        marigold: document.getElementById("themeMarigold").value,
+        vermilion: document.getElementById("themeVermilion").value,
+        green: document.getElementById("themeGreen").value
+      };
+      applyTheme();
+      scheduleSave();
+      render();
+    },
+
+    resetTheme(){
+      state.settings.theme = { navy: "#1F2A44", marigold: "#F2A541", vermilion: "#D64545", green: "#2F9E5B" };
+      applyTheme();
+      scheduleSave();
+      render();
+    },
+
+    setPin(){
+      const p1 = document.getElementById("newPin").value.trim();
+      const p2 = document.getElementById("confirmPin").value.trim();
+      if(!/^\d{4,6}$/.test(p1)){ alert("PIN must be 4-6 digits."); return; }
+      if(p1 !== p2){ alert("PINs don't match."); return; }
+      state.settings.pin = p1;
+      scheduleSave();
+      alert("PIN saved. You'll be asked for it next time you open the app.");
+      render();
+    },
+
+    removePin(){
+      if(!confirm("Remove the PIN lock?")) return;
+      state.settings.pin = null;
+      scheduleSave();
+      render();
+    },
+
+    calendarPrevMonth(){
+      state.calendarMonth--;
+      if(state.calendarMonth < 0){ state.calendarMonth = 11; state.calendarYear--; }
+      render();
+    },
+
+    calendarNextMonth(){
+      state.calendarMonth++;
+      if(state.calendarMonth > 11){ state.calendarMonth = 0; state.calendarYear++; }
+      render();
+    },
+
+    selectCalendarDate(dISO){
+      state.selectedDate = dISO;
+      render();
+    },
+
+    exportBackup(){
+      const payload = {
+        business: state.business, customers: state.customers, trips: state.trips,
+        payments: state.payments, settings: state.settings, exportedAt: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = (state.business.name || "tempo-ledger").replace(/\s+/g, "_") + "-backup-" + todayISO() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+
+    triggerImport(){
+      document.getElementById("importFile").click();
+    },
+
+    handleImportFile(input){
+      const file = input.files && input.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try{
+          const d = JSON.parse(e.target.result);
+          if(!confirm("This will replace all current data with the backup file. Continue?")){ input.value = ""; return; }
+          state.business = d.business || state.business;
+          state.customers = d.customers || [];
+          state.trips = d.trips || [];
+          state.payments = d.payments || [];
+          if(d.settings){
+            state.settings = { pin: d.settings.pin || null, theme: { ...state.settings.theme, ...(d.settings.theme || {}) } };
+          }
+          applyTheme();
+          scheduleSave();
+          alert("Backup restored.");
+          render();
+        } catch(err){
+          alert("Couldn't read that file — make sure it's a backup exported from this app.");
+        }
+        input.value = "";
+      };
+      reader.readAsText(file);
+    },
+
+    pressDigit(d){
+      const target = (state.settings.pin || "").length;
+      if(pinEntry.length >= target) return;
+      pinEntry += d;
+      pinError = false;
+      renderLock();
+      if(pinEntry.length === target){
+        if(pinEntry === state.settings.pin){
+          unlocked = true;
+          pinEntry = "";
+          render();
+        } else {
+          pinError = true;
+          renderLock();
+          setTimeout(() => { pinEntry = ""; pinError = false; renderLock(); }, 600);
+        }
+      }
+    },
+
+    pressBackspace(){
+      pinEntry = pinEntry.slice(0, -1);
+      renderLock();
+    },
+
+    forgotPinReset(){
+      if(!confirm("This erases ALL saved trips, customers, payments and the PIN on this device. Continue?")) return;
+      state = {
+        business: { name: "My Tempo Service", phone: "" },
+        customers: [], trips: [], payments: [],
+        settings: { pin: null, theme: { navy: "#1F2A44", marigold: "#F2A541", vermilion: "#D64545", green: "#2F9E5B" } },
+        tab: "home", period: "daily", saveState: "synced"
+      };
+      applyTheme();
+      unlocked = true;
+      scheduleSave();
+      render();
+    }
+  };
+  window.app = app;
+
+  loadData();
+})();
+</script>
+</body>
+</html>
